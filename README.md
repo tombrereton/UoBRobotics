@@ -1,7 +1,7 @@
 # UBRobotics
 
 This is a cleaned verson of the old UBRobotics repository which is located at the following url:
-(https://github.com/EdwardChamberlain/UBRobotics)
+[](https://github.com/EdwardChamberlain/UBRobotics)
 
 Dear members,
 
