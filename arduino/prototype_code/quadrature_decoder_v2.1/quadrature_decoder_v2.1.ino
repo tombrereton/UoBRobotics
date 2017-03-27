@@ -45,9 +45,10 @@
  * [] Function to specify power to master motor (left)
  * [] Function to specify power to slave motor (right)
  * [] Manually tune 'constant of proportionality,' kp
+ * [] Calibrate degrees turned using the calibrate function
  * [x] Function to drive a certain distance straight
- * [] Function to turn left X degrees
- * [] Function to turn right X degrees
+ * [x] Function to turn left X degrees
+ * [x] Function to turn right X degrees
  * [] Function to decode request protocol
  * [] Function to encode response protocol
  */
@@ -81,7 +82,7 @@ const int CALIBRATER_TICKS = 200;
 // refer to the following website for the experiment
 // http://www.robotc.net/wikiarchive/Tutorials/Arduino_Projects/Mobile_Robotics/VEX/Using_encoders_to_make_turns
 const int DEGREES_ROTATED = 86;
-const int TICKS_PER_10_DEGREES = (CALIBRATER_TICKS * 10) / DEGREES_ROTATED
+const int TICKS_PER_10_DEGREES = (CALIBRATER_TICKS * 10) / DEGREES_ROTATED;
 
 /**
  *'Constant of proportionality' which the error is divided by. 
@@ -229,8 +230,8 @@ void calibration(){
  
   // Perform a point turn to the left. We will use lower power 
   // values for more accuracy.
-  masterPower = -20;
-  slavePower = 20;
+  int masterPower = -20;
+  int slavePower = 20;
   // TODO: function to set motor speed
 
     // Since the wheels may go at slightly different speeds 
