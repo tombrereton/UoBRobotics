@@ -4,6 +4,7 @@
 //
 // © UBRobotics 2016
 // Written by Ed Chamberlain
+// Modified by Tom Brereton
 //
 // This sketch will read the encoder value for a sinle EMG30 motors
 // and print the current count to the serial interface.
@@ -52,7 +53,6 @@
 // (CONFIRM last statement)
 volatile long masterCount = 0;
 volatile long slaveCount = 0;
-volatile int error = 0;
 
 // Variables for calculating distance
 const double PIE = 3.1415;
@@ -130,7 +130,7 @@ void masterEncoderB () {
 }
 
 // ----------------------------------------------------------------
-// --------- Interrupt Service Routines Master Wheel --------------
+// --------- Interrupt Service Routines Slave Wheel --------------
 // ----------------------------------------------------------------
 
 /** 
@@ -144,9 +144,9 @@ void slaveEncoderA () {
 }
   
 /** 
- *  masterEncoderB for the master wheel.
+ *  slaveEncoderB for the slave wheel.
  *  If we get a read from pin 7 or 8 but not both, we increase the 
- *  masterCount, otherwise decrease.
+ *  slaveCount, otherwise decrease.
  */
 void slaveEncoderB () {
   // decode quadrature
@@ -176,6 +176,10 @@ int tickGoalCalculator(int mmToTravel){
  * starting power for the left motor. The slavePower (right)
  * is given an initial power relative to this. This difference may
  * need to be tweaked.
+ * 
+ * For example, if mmToTravel = 100, and masterPower = 30
+ * We would travel 100 mm (10 cm) with the master motor
+ * set to a power of 30.
  */
 void driveStraightDistance(int mmToTravel, int masterPower){
   
@@ -184,7 +188,7 @@ void driveStraightDistance(int mmToTravel, int masterPower){
   // DEBUG TICKGOAL
   Serial.print("The mmToTravel is: ");
   Serial.print(mmToTravel);
-  Serial.print("The tick goal is: ");
+  Serial.print(", The tick goal is: ");
   Serial.println(tickGoal);
 
   // This will count up the total encoder ticks despite the 
@@ -215,12 +219,12 @@ void driveStraightDistance(int mmToTravel, int masterPower){
 
     // DEBUG ERROR
     Serial.print("Error: ");
-    Serial.print(error);
+    Serial.print(localErrorVar);
 
     // Dividing by kp means that the error is scaled accordingly 
     // so that the motor value does not change too much or too 
     // little. You should 'tune' kp to get the best value. 
-    slavePower = slavePower + error / kp;
+    slavePower = slavePower + localErrorVar / kp;
 
     // DEBUG SLAVE POWER
     Serial.print(", Slave power: ");
@@ -252,7 +256,9 @@ void driveStraightDistance(int mmToTravel, int masterPower){
 }
 
 void loop(){
-  driveStraightDistance(100, 30);
+  driveStraightDistance(500, 30);
+  delay(500);
+  driveStraightDistance(500, -30);
 }
 
 
@@ -264,59 +270,16 @@ void loop(){
 // ----------------------------------------------------------------
 
 /** 
- * [] Function to return sensor value of left encoder
- * [] Function to return sensor value of right encoder
+ * [x] Function to return sensor value of left encoder
+ * [x] Function to return sensor value of right encoder
  * [] Function to specify power to master motor (left)
  * [] Function to specify power to slave motor (right)
  * [] Manually tune 'constant of proportionality,' kp
- * [] Function to drive a certain distance straight
+ * [x] Function to drive a certain distance straight
+ * [] Function to turn left 90 degrees
+ * [] Function to turn right 90 degrees
  */
 
-/** 
- * The power we give to both the motors. Where master is the left
- * and slave is the right. We keep the master at the same speed
- * and increase or decrease the slave speed as per the error
- * to keep the robot in a straight line.
- */
-//int masterPower = 30;
-//int slavePower = 30;
-//
-//
-//void loop() {
-//  
-//    // Set the 2 motors the initial power
-//    // TODO: ADD FUNCTION
-//
-//    // We calculate the error between the wheel.
-//    // A negative error means the slave wheel should slow down.
-//    // A positive error means the slave wheel should speed up.
-//    error = masterCount - slaveCount;
-//
-//    // DEBUG ERROR
-//    Serial.print("Error: ");
-//    Serial.print(error);
-//
-//    // Dividing by kp means that the error is scaled accordingly 
-//    // so that the motor value does not change too much or too 
-//    // little. You should 'tune' kp to get the best value. 
-//    slavePower = slavePower + error / kp;
-//
-//    // DEBUG SLAVE POWER
-//    Serial.print(", Slave power: ");
-//    Serial.println(slavePower);
-//
-//    // Reset the encoders every loop so we have a fresh value 
-//    // to use to calculate the error.
-//    masterCount = 0;
-//    slaveCount = 0;
-//
-//    // Makes the loop repeat ten times a second. If it repeats 
-//    // too much we lose accuracy due to the fact that we don't have
-//    // access to floating point math, however if it repeats to 
-//    // little the proportional algorithm will not be as effective.
-//    // Keep in mind that if this value is changed, kp must change accordingly.
-//    delay(200);
-//}
 
 
 

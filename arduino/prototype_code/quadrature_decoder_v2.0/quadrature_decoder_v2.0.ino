@@ -4,6 +4,7 @@
 //
 // © UBRobotics 2016
 // Written by Ed Chamberlain
+// Modified by Tom Brereton
 //
 // This sketch will read the encoder value for a sinle EMG30 motors
 // and print the current count to the serial interface.
