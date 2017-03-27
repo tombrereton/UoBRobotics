@@ -134,6 +134,8 @@ else:
         # if the 'q' key is pressed, stop the loop
         if key == ord("q"):
             break
+
+        time.sleep(.01)
 # cleanup the camera and close any open windows
 camera.release()
 cv2.destroyAllWindows()
