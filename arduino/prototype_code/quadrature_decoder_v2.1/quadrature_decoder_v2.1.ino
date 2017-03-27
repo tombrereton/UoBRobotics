@@ -54,11 +54,19 @@
 volatile long masterCount = 0;
 volatile long slaveCount = 0;
 
-// Variables for calculating distance
+// Variables for calculating straight distance
 const double PIE = 3.1415;
 const double WHEEL_DIAMETER_CM = 9.5;
 const double CIRCUMFERENCE_CM = PIE * WHEEL_DIAMETER_CM;
 const int TICKS_PER_CM = 360 / CIRCUMFERENCE_CM;
+
+// Variables for calculating turning distance
+const int CALIBRATER_TICKS = 200;
+// degrees rotated must be measured after running the calibration program
+// refer to the following website for the experiment
+// http://www.robotc.net/wikiarchive/Tutorials/Arduino_Projects/Mobile_Robotics/VEX/Using_encoders_to_make_turns
+const int DEGREES_ROTATED = 86;
+const int TICKS_PER_10_DEGREES = (CALIBRATER_TICKS * 10) / DEGREES_ROTATED
 
 /**
  *'Constant of proportionality' which the error is divided by. 
@@ -75,7 +83,7 @@ int kp = 5;
 #define absolute(X) ((X < 0) ? -1 * X : X)
 
 // ----------------------------------------------------------------
-// -------------------------- Functions ---------------------------
+// --------------------------- Setup ------------------------------
 // ----------------------------------------------------------------
 
 void setup() {
@@ -171,6 +179,52 @@ int tickGoalCalculator(int mmToTravel){
 }
 
 /**
+ * This method function turns the robot 200 encoder ticks.
+ * 
+ * To use this code, (1) the first thing we need to do is place the robot 
+ * on a markable surface (e.g. whiteboard, a large sheet of paper, etc.) 
+ * and mark a line perpendicular to the robot, straight through 
+ * its center.
+ * (2) Now, run the program.
+ * (3) Next, mark another perpendicular line in the same manner as you 
+ * did before, only relative to the robot's new position. 
+ * (4) Finally, use a protractor to measure the angle formed between 
+ * these two lines, and that will determine the angle through 
+ * which the robot turned. 
+ * (5) Enter this angle as the value for the variable, DEGREES_ROTATED above.
+ */
+void calibration(){
+  masterCount = 0;
+  slaveCount = 0;
+
+  // wait 4 seconds
+  delay(4000);
+ 
+  // Perform a point turn to the left. We will use lower power 
+  // values for more accuracy.
+  masterPower = -20;
+  slavePower = 20;
+  // TODO: function to set motor speed
+
+    // Since the wheels may go at slightly different speeds 
+    // due to manufacturing tolerances, etc., we need to test 
+    // both encoders and control both motors separately. This 
+    // may result in one motor going for longer than another but 
+    // it will ultimately result in a much more accurate turn.
+
+    while(slaveCount < 200 || masterCount > -200){
+      
+      if(slaveCount > 200){
+        slavePower = 0;
+      }
+      
+      if(masterCount < -200){
+        masterPower = 0;
+      }
+    }
+}
+
+/**
  * This function moves the robot X milimetres in a straightline.
  * Where X is the parameter, mmToTravel. masterPower is the
  * starting power for the left motor. The slavePower (right)
@@ -217,7 +271,7 @@ void driveStraightDistance(int mmToTravel, int masterPower){
     // A positive error means the slave wheel should speed up.
     localErrorVar = masterCount - slaveCount;
 
-    // DEBUG ERROR
+    // DEBUG LOCAL ERROR VAR
     Serial.print("Error: ");
     Serial.print(localErrorVar);
 
