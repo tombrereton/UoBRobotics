@@ -1,7 +1,7 @@
 # UBRobotics
 
 This is a cleaned verson of the old UBRobotics repository which is located at the following url:
-[](https://github.com/EdwardChamberlain/UBRobotics)
+[UBRobotics](https://github.com/EdwardChamberlain/UBRobotics)
 
 Dear members,
 
@@ -14,3 +14,5 @@ Prototype code contains sketches that experiment with different features of the 
 Remember, some of the libraries have other custom libraries as requirement, check that you have them installed before you compile the code.
 
 For ease of use you can change the Arduino IDE sketch folder to the 'Arduino' folder of this library.
+
+[Program plan](https://docs.google.com/document/d/151qjyAMwlGXMcHJ_JjlsQlCWHg7TMhyk7MZZmxj0qeI/edit?usp=sharing)
