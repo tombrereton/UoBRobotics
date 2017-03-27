@@ -35,8 +35,23 @@
 // * The packet sent from the Pi will call these functions.
 
 
-// The simplest approach to estimate velocity = Δpos/Δt: 
-// measure the change in position and divide by the change in time. 
+// ----------------------------------------------------------------
+// ------------------------ Program Plan --------------------------
+// ----------------------------------------------------------------
+
+/** 
+ * [x] Function to return sensor value of left encoder
+ * [x] Function to return sensor value of right encoder
+ * [] Function to specify power to master motor (left)
+ * [] Function to specify power to slave motor (right)
+ * [] Manually tune 'constant of proportionality,' kp
+ * [x] Function to drive a certain distance straight
+ * [] Function to turn left X degrees
+ * [] Function to turn right X degrees
+ * [] Function to decode request protocol
+ * [] Function to encode response protocol
+ */
+
 
 
 // ----------------------------------------------------------------
@@ -114,9 +129,9 @@ void setup() {
 // ----------------------------------------------------------------
 
 /** 
- *  masterEncoderA for the master wheel.
- *  If we get a read from pin 7 or 8 but not both, we decrease the 
- *  masterCount, otherwise increase.
+ * masterEncoderA for the master wheel.
+ * If we get a read from pin 7 or 8 but not both, we decrease the 
+ * masterCount, otherwise increase.
  */
 void masterEncoderA () {
   // decode quadrature
@@ -126,9 +141,9 @@ void masterEncoderA () {
 }
   
 /** 
- *  masterEncoderB for the master wheel.
- *  If we get a read from pin 7 or 8 but not both, we increase the 
- *  masterCount, otherwise decrease.
+ * masterEncoderB for the master wheel.
+ * If we get a read from pin 7 or 8 but not both, we increase the 
+ * masterCount, otherwise decrease.
  */
 void masterEncoderB () {
   // decode quadrature
@@ -142,9 +157,9 @@ void masterEncoderB () {
 // ----------------------------------------------------------------
 
 /** 
- *  slaveEncoderA for the slave wheel.
- *  If we get a read from pin 5 or 6 but not both, we decrease the 
- *  slaveCount, otherwise increase.
+ * slaveEncoderA for the slave wheel.
+ * If we get a read from pin 5 or 6 but not both, we decrease the 
+ * slaveCount, otherwise increase.
  */
 void slaveEncoderA () {
   // decode quadrature
@@ -152,9 +167,9 @@ void slaveEncoderA () {
 }
   
 /** 
- *  slaveEncoderB for the slave wheel.
- *  If we get a read from pin 7 or 8 but not both, we increase the 
- *  slaveCount, otherwise decrease.
+ * slaveEncoderB for the slave wheel.
+ * If we get a read from pin 7 or 8 but not both, we increase the 
+ * slaveCount, otherwise decrease.
  */
 void slaveEncoderB () {
   // decode quadrature
@@ -173,15 +188,27 @@ void slaveEncoderB () {
  * or
  * Encoder ticks = TICKS_PER_CM * Distance to travel
  */
-int tickGoalCalculator(int mmToTravel){
+int straightTickGoalCalculator(int mmToTravel){
   int tickGoal = (TICKS_PER_CM * mmToTravel) / 10;
   return tickGoal;
 }
 
 /**
- * This method function turns the robot 200 encoder ticks.
+ * This function determines the total number of ticks needed
+ * to turn the degrees specified. It uses the formula:
  * 
- * To use this code, (1) the first thing we need to do is place the robot 
+ * Encoder ticks = TICKS_PER_10_DEGREES * degrees
+ */
+int turnTickGoalCalculator(int degrees){
+  int tickGoal = (TICKS_PER_10_DEGREES * degrees) / 10;
+  return tickGoal;
+}
+
+/**
+ * This function turns the robot 200 encoder ticks and is used to
+ * calibrate its turning ability.
+ * 
+ * (1) The first thing we need to do is place the robot 
  * on a markable surface (e.g. whiteboard, a large sheet of paper, etc.) 
  * and mark a line perpendicular to the robot, straight through 
  * its center.
@@ -216,12 +243,96 @@ void calibration(){
       
       if(slaveCount > 200){
         slavePower = 0;
+        // TODO: set motor to 0
       }
       
       if(masterCount < -200){
         masterPower = 0;
+        // TODO: set motor to 0
       }
     }
+}
+
+/**
+ * This fuctions rotates the robot left as specified by the
+ * number of degrees. It rotates the wheels as per the power specified.
+ */
+void turnLeftDeg(int degrees, int power){
+
+  // reset encoder counts
+  masterCount = 0;
+  slaveCount = 0;
+
+  // determine the tick goal
+  int tickGoal = turnTickGoalCalculator(degrees);
+
+  // Start the motors in a left point turn
+  int masterPower = -1 * power;
+  int slavePower = power;
+
+  // Since the wheels may go at slightly different speeds due to 
+  // manufacturing tolerances, etc., we need to test both encoders 
+  // and control both motors separately. This may result in one motor
+  // going for longer than another but it will ultimately result 
+  // in a much more accurate turn.
+  while(slaveCount < tickGoal || masterCount > -1 * tickGoal){
+    
+    if(slaveCount > tickGoal){
+      slavePower = 0;
+      // TODO: set motor to 0
+    }
+
+    if(masterCount < -1 * tickGoal){
+      masterPower = 0;
+      // TODO: set motor to 0
+    }
+  }
+
+  // make sure both motors stop after the loop
+  slavePower = 0;
+  masterPower = 0;
+  // TODO: set motors to 0
+}
+
+/**
+ * This fuctions rotates the robot right as specified by the
+ * number of degrees. It rotates the wheels as per the power specified.
+ */
+void turnRightDeg(int degrees, int power){
+
+  // reset encoder counts
+  masterCount = 0;
+  slaveCount = 0;
+
+  // determine the tick goal
+  int tickGoal = turnTickGoalCalculator(degrees);
+
+  // Start the motors in a left point turn
+  int masterPower = power;
+  int slavePower = -1 * power;
+
+  // Since the wheels may go at slightly different speeds due to 
+  // manufacturing tolerances, etc., we need to test both encoders 
+  // and control both motors separately. This may result in one motor
+  // going for longer than another but it will ultimately result 
+  // in a much more accurate turn.
+  while(masterCount < tickGoal || slaveCount > -1 * tickGoal){
+    
+    if(masterCount > tickGoal){
+      masterPower = 0;
+      // TODO: set motor to 0
+    }
+
+    if(slaveCount < -1 * tickGoal){
+      slavePower = 0;
+      // TODO: set motor to 0
+    }
+  }
+
+  // make sure both motors stop after the loop
+  slavePower = 0;
+  masterPower = 0;
+  // TODO: set motors to 0
 }
 
 /**
@@ -237,7 +348,7 @@ void calibration(){
  */
 void driveStraightDistance(int mmToTravel, int masterPower){
   
-  int tickGoal = tickGoalCalculator(mmToTravel);
+  int tickGoal = straightTickGoalCalculator(mmToTravel);
 
   // DEBUG TICKGOAL
   Serial.print("The mmToTravel is: ");
@@ -309,31 +420,16 @@ void driveStraightDistance(int mmToTravel, int masterPower){
   // TODO: function to set motor power
 }
 
+
+// ----------------------------------------------------------------
+// ----------------------- Main Function --------------------------
+// ----------------------------------------------------------------
+
 void loop(){
   driveStraightDistance(500, 30);
   delay(500);
   driveStraightDistance(500, -30);
 }
-
-
-
-
-
-// ----------------------------------------------------------------
-// ---------------------- New Program Plan ------------------------
-// ----------------------------------------------------------------
-
-/** 
- * [x] Function to return sensor value of left encoder
- * [x] Function to return sensor value of right encoder
- * [] Function to specify power to master motor (left)
- * [] Function to specify power to slave motor (right)
- * [] Manually tune 'constant of proportionality,' kp
- * [x] Function to drive a certain distance straight
- * [] Function to turn left 90 degrees
- * [] Function to turn right 90 degrees
- */
-
 
 
 
