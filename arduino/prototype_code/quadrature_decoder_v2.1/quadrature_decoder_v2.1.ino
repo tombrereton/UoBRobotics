@@ -434,6 +434,33 @@ void loop(){
 
 
 
+// ----------------------------------------------------------------
+// ------------------------- Protocol -----------------------------
+// ----------------------------------------------------------------
 
+
+/**
+ * - Request Packet contains type, and 2 parameters for method
+ * - type1, distance to travel in mm, power of master to go forward
+ * - type2, degrees to rotate left, power to turn left
+ * - type3, degrees to rotate right, power to turn right
+ * - type4, distance to travel in mm, power of master to go backward
+ * - type5, 0, 0, tells robot to stop
+ * - Example: "one, 100, 30"
+ * 
+ * - Response packet contains type, success, error msg
+ * - Example: "one, FAIL, unknown"
+ */
+
+void decodeProtocol(char packet[]){
+  // need to define length
+
+char test[] ="one, 100000, 30";
+char * command;
+command = strtok (test,",");
+}
+
+
+ 
 
 
