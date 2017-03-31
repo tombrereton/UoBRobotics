@@ -59,10 +59,22 @@
 // ----------------------- Libraries ------------------------------
 // ----------------------------------------------------------------
 
+#include <Wire.h>
+#include <Adafruit_MotorShield.h>
+#include "utility/Adafruit_MS_PWMServoDriver.h"
 
 // ----------------------------------------------------------------
 // ----------------------- Global Variables -----------------------
 // ----------------------------------------------------------------
+
+// Create the motor shield object with the default I2C address
+Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
+// Or, create it with a different I2C address (say for stacking)
+// Adafruit_MotorShield AFMS = Adafruit_MotorShield(0x61); 
+
+// Select which 'port' M1, M2, M3 or M4. In this case, M1 and M2
+Adafruit_DCMotor *masterMotor = AFMS.getMotor(1);
+Adafruit_DCMotor *slaveMotor = AFMS.getMotor(2);
 
 // pulse counter
 // The pulse counter increments by one for every 1/360 rotation (1 degree)
@@ -115,6 +127,9 @@ void setup() {
   // We use 250000 for a high speed data transfer
 //  Serial.begin(250000);
   Serial.begin(9600);
+
+  AFMS.begin();  // create with the default frequency 1.6KHz
+  //AFMS.begin(1000);  // OR with a different frequency, say 1KHz
 
   // We attach the encoders for the master wheel (left)
   attachInterrupt(7, masterEncoderA, intMode);
@@ -182,6 +197,47 @@ void slaveEncoderB () {
 // ----------------------------------------------------------------
 
 /**
+ * This function sets the speed of the master motor.
+ * A 0 or positive value makes the motor go forward,
+ * a negative value makes the motor go backward.
+ * Speed ranges between 0(off) to 255(max speed)
+ */
+void setMasterMotorSpeed(int speed){
+  if(speed >= 0){
+    masterMotor->setSpeed(speed);
+    masterMotor->run(FORWARD);
+  } else if (speed < 0){
+    masterMotor->setSpeed(-speed);
+    masterMotor->run(BACKWARD);
+  }
+  // turn on motor
+  masterMotor->run(RELEASE);
+}
+
+
+/**
+ * This function sets the speed of the slave motor.
+ * A 0 or positive value makes the motor go forward,
+ * a negative value makes the motor go backward.
+ * Speed ranges between 0(off) to 255(max speed)
+ */
+void setSlaveMotorSpeed(int speed){
+  // we take the negative of speed as the slave
+  // is facing the opposite direction to the master
+  speed = -speed;
+  
+  if(speed >= 0){
+    slaveMotor->setSpeed(speed);
+    slaveMotor->run(FORWARD);
+  } else if (speed < 0){
+    slaveMotor->setSpeed(-speed);
+    slaveMotor->run(BACKWARD);
+  }
+  // turn on motor
+  slaveMotor->run(RELEASE);
+}
+
+/**
  * This function determines the total number of ticks needed
  * to travel the milimetres specified to travel. It uses the formula:
  * 
@@ -230,9 +286,8 @@ void calibration(){
  
   // Perform a point turn to the left. We will use lower power 
   // values for more accuracy.
-  int masterPower = -20;
-  int slavePower = 20;
-  // TODO: function to set motor speed
+  setMasterMotorSpeed(20);
+  setSlaveMotorSpeed(20);
 
     // Since the wheels may go at slightly different speeds 
     // due to manufacturing tolerances, etc., we need to test 
@@ -243,13 +298,11 @@ void calibration(){
     while(slaveCount < 200 || masterCount > -200){
       
       if(slaveCount > 200){
-        slavePower = 0;
-        // TODO: set motor to 0
+        setSlaveMotorSpeed(0);
       }
       
       if(masterCount < -200){
-        masterPower = 0;
-        // TODO: set motor to 0
+        setMasterMotorSpeed(0);
       }
     }
 }
@@ -268,8 +321,8 @@ void turnLeftDeg(int degrees, int power){
   int tickGoal = turnTickGoalCalculator(degrees);
 
   // Start the motors in a left point turn
-  int masterPower = -1 * power;
-  int slavePower = power;
+  setMasterMotorSpeed(-1 * power);
+  setSlaveMotorSpeed(power);
 
   // Since the wheels may go at slightly different speeds due to 
   // manufacturing tolerances, etc., we need to test both encoders 
@@ -279,20 +332,17 @@ void turnLeftDeg(int degrees, int power){
   while(slaveCount < tickGoal || masterCount > -1 * tickGoal){
     
     if(slaveCount > tickGoal){
-      slavePower = 0;
-      // TODO: set motor to 0
+      setSlaveMotorSpeed(0);
     }
 
     if(masterCount < -1 * tickGoal){
-      masterPower = 0;
-      // TODO: set motor to 0
+      setMasterMotorSpeed(0);
     }
   }
 
   // make sure both motors stop after the loop
-  slavePower = 0;
-  masterPower = 0;
-  // TODO: set motors to 0
+  setSlaveMotorSpeed(0);
+  setMasterMotorSpeed(0);
 }
 
 /**
@@ -308,9 +358,9 @@ void turnRightDeg(int degrees, int power){
   // determine the tick goal
   int tickGoal = turnTickGoalCalculator(degrees);
 
-  // Start the motors in a left point turn
-  int masterPower = power;
-  int slavePower = -1 * power;
+  // Start the motors in a right point turn
+  setMasterMotorSpeed(power);
+  setSlaveMotorSpeed(-1 * power);
 
   // Since the wheels may go at slightly different speeds due to 
   // manufacturing tolerances, etc., we need to test both encoders 
@@ -320,20 +370,17 @@ void turnRightDeg(int degrees, int power){
   while(masterCount < tickGoal || slaveCount > -1 * tickGoal){
     
     if(masterCount > tickGoal){
-      masterPower = 0;
-      // TODO: set motor to 0
+      setMasterMotorSpeed(0);
     }
 
     if(slaveCount < -1 * tickGoal){
-      slavePower = 0;
-      // TODO: set motor to 0
+      setSlaveMotorSpeed(0);
     }
   }
 
   // make sure both motors stop after the loop
-  slavePower = 0;
-  masterPower = 0;
-  // TODO: set motors to 0
+  setSlaveMotorSpeed(0);
+  setMasterMotorSpeed(0);
 }
 
 /**
@@ -376,6 +423,8 @@ void driveStraightDistance(int mmToTravel, int masterPower){
   while(absolute(totalTicks) < tickGoal){
 
     // Set the 2 motors to the masterPower and slavePower
+    setSlaveMotorSpeed(masterPower);
+    setMasterMotorSpeed(slavePower);
     // TODO: ADD FUNCTION
 
     // We calculate the error between the wheel.
