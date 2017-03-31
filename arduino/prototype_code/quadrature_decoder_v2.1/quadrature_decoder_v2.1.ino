@@ -62,6 +62,10 @@
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
+#include <string>
+#include <vector>
+#include <string.h>
+#include <stdio.h>
 
 // ----------------------------------------------------------------
 // ----------------------- Global Variables -----------------------
@@ -115,13 +119,13 @@ int kp = 5;
 // ----------------------------------------------------------------
 
 void setup() {
-  // read in from pins 7 & 8 for master wheel
-  pinMode(7, INPUT_PULLUP);
+  // read in from pins 8 & 9 for master wheel
   pinMode(8, INPUT_PULLUP);
+  pinMode(9, INPUT_PULLUP);
 
-  // read in from pins 5 & 6 for slave wheel
-  pinMode(5, INPUT_PULLUP);
-  pinMode(6, INPUT_PULLUP);
+  // read in from pins 10 & 11 for slave wheel
+  pinMode(10, INPUT_PULLUP);
+  pinMode(11, INPUT_PULLUP);
 
   // init serial
   // We use 250000 for a high speed data transfer
@@ -132,12 +136,12 @@ void setup() {
   //AFMS.begin(1000);  // OR with a different frequency, say 1KHz
 
   // We attach the encoders for the master wheel (left)
-  attachInterrupt(7, masterEncoderA, intMode);
-  attachInterrupt(8, masterEncoderB, intMode);
+  attachInterrupt(8, masterEncoderA, intMode);
+  attachInterrupt(9, masterEncoderB, intMode);
 
   // We attach the encoders for the slave wheel (right)
-  attachInterrupt(5, slaveEncoderA, intMode);
-  attachInterrupt(6, slaveEncoderB, intMode);
+  attachInterrupt(10, slaveEncoderA, intMode);
+  attachInterrupt(11, slaveEncoderB, intMode);
 }
 
 // ----------------------------------------------------------------
@@ -151,9 +155,9 @@ void setup() {
  */
 void masterEncoderA () {
   // decode quadrature
-  (digitalRead(7) ^ digitalRead(8)) ? masterCount-- : masterCount++;
+  (digitalRead(8) ^ digitalRead(9)) ? masterCount-- : masterCount++;
   // debug to serial
-//  Serial.println(masterCount);
+  Serial.println(masterCount);
 }
   
 /** 
@@ -163,9 +167,9 @@ void masterEncoderA () {
  */
 void masterEncoderB () {
   // decode quadrature
-  (digitalRead(7) ^ digitalRead(8)) ? masterCount++ : masterCount--;
+  (digitalRead(8) ^ digitalRead(9)) ? masterCount++ : masterCount--;
   // debug to serial
-//  Serial.println(masterCount);
+  Serial.println(masterCount);
 }
 
 // ----------------------------------------------------------------
@@ -179,7 +183,7 @@ void masterEncoderB () {
  */
 void slaveEncoderA () {
   // decode quadrature
-  (digitalRead(5) ^ digitalRead(6)) ? slaveCount-- : slaveCount++;
+  (digitalRead(10) ^ digitalRead(11)) ? slaveCount-- : slaveCount++;
 }
   
 /** 
@@ -189,7 +193,7 @@ void slaveEncoderA () {
  */
 void slaveEncoderB () {
   // decode quadrature
-  (digitalRead(5) ^ digitalRead(6)) ? slaveCount++ : slaveCount--;
+  (digitalRead(10) ^ digitalRead(11)) ? slaveCount++ : slaveCount--;
 }
 
 // ----------------------------------------------------------------
@@ -204,14 +208,14 @@ void slaveEncoderB () {
  */
 void setMasterMotorSpeed(int speed){
   if(speed >= 0){
-    masterMotor->setSpeed(speed);
     masterMotor->run(FORWARD);
+    masterMotor->setSpeed(speed);
   } else if (speed < 0){
-    masterMotor->setSpeed(-speed);
     masterMotor->run(BACKWARD);
+    masterMotor->setSpeed(-1*speed);
   }
-  // turn on motor
-  masterMotor->run(RELEASE);
+//  // turn on motor
+//  masterMotor->run(RELEASE);
 }
 
 
@@ -224,17 +228,16 @@ void setMasterMotorSpeed(int speed){
 void setSlaveMotorSpeed(int speed){
   // we take the negative of speed as the slave
   // is facing the opposite direction to the master
-  speed = -speed;
   
   if(speed >= 0){
-    slaveMotor->setSpeed(speed);
     slaveMotor->run(FORWARD);
+    slaveMotor->setSpeed(speed);
   } else if (speed < 0){
-    slaveMotor->setSpeed(-speed);
     slaveMotor->run(BACKWARD);
+    slaveMotor->setSpeed(-1*speed);
   }
-  // turn on motor
-  slaveMotor->run(RELEASE);
+//  // turn on motor
+//  slaveMotor->run(RELEASE);
 }
 
 /**
@@ -280,14 +283,11 @@ int turnTickGoalCalculator(int degrees){
 void calibration(){
   masterCount = 0;
   slaveCount = 0;
-
-  // wait 4 seconds
-  delay(4000);
  
   // Perform a point turn to the left. We will use lower power 
   // values for more accuracy.
-  setMasterMotorSpeed(20);
-  setSlaveMotorSpeed(20);
+  setMasterMotorSpeed(100);
+  setSlaveMotorSpeed(-100);
 
     // Since the wheels may go at slightly different speeds 
     // due to manufacturing tolerances, etc., we need to test 
@@ -413,7 +413,7 @@ void driveStraightDistance(int mmToTravel, int masterPower){
   // based off a rough guess of how much the motors are different,
   // which prevents the robot from veering off course at the start 
   // of the function.
-  int slavePower = masterPower - 5; 
+  int slavePower = masterPower; 
 
   volatile int localErrorVar = 0;
 
@@ -425,7 +425,6 @@ void driveStraightDistance(int mmToTravel, int masterPower){
     // Set the 2 motors to the masterPower and slavePower
     setSlaveMotorSpeed(masterPower);
     setMasterMotorSpeed(slavePower);
-    // TODO: ADD FUNCTION
 
     // We calculate the error between the wheel.
     // A negative error means the slave wheel should slow down.
@@ -465,9 +464,8 @@ void driveStraightDistance(int mmToTravel, int masterPower){
   }
 
   // Stop the wheels moving once we have reached the destination
-  masterPower = 0;
-  slavePower = 0;
-  // TODO: function to set motor power
+  setSlaveMotorSpeed(0);
+  setMasterMotorSpeed(0);
 }
 
 
@@ -476,9 +474,10 @@ void driveStraightDistance(int mmToTravel, int masterPower){
 // ----------------------------------------------------------------
 
 void loop(){
-  driveStraightDistance(500, 30);
-  delay(500);
-  driveStraightDistance(500, -30);
+  driveStraightDistance(500, 100);
+  delay(1000);
+  driveStraightDistance(500, -100);
+  delay(1000);
 }
 
 
