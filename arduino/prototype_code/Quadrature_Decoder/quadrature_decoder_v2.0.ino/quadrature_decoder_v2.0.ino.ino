@@ -38,119 +38,84 @@
 // ----------------------------------------------------------------
 // -------------------------- Libraries ---------------------------
 // ----------------------------------------------------------------
-// This optional setting causes Encoder to use more optimized code,
-// It must be defined before Encoder.h is included.
-#define ENCODER_OPTIMIZE_INTERRUPTS
-#include <Encoder.h>
 
-// ----------------------------------------------------------------
-// ----------------------- New Program ----------------------------
-// ----------------------------------------------------------------
-
-// Change these pin numbers to the pins connected to your encoder.
-//   Best Performance: both pins have interrupt capability
-//   Good Performance: only the first pin has interrupt capability
-//   Low Performance:  neither pin has interrupt capability
-Encoder knobRight(7, 8);
-//   avoid using pins with LEDs attached
-
-void setup() {
-  Serial.begin(9600);
-  Serial.println("One wheel Encoder Test:");
-}
-
-long positionLeft  = -999;
-long positionRight = -999;
-
-void loop() {
-  long newRight;
-  newRight = knobRight.read();
-  if (newRight != positionRight) {
-    Serial.print("Right = ");
-    Serial.print(newRight);
-    Serial.println();
-    positionRight = newRight;
-  }
-  // if a character is sent from the serial monitor,
-  // reset both back to zero.
-  if (Serial.available()) {
-    Serial.read();
-    Serial.println("Reset both knobs to zero");
-    knobRight.write(0);
-  }
-}
 
 // ----------------------------------------------------------------
 // ----------------------- Global Variables -----------------------
 // ----------------------------------------------------------------
 
-//// pulse counter
-//// The pulse counter increments by one for every 1/360 rotation (1 degree)
-//volatile  long count = 0;
+// pulse counter
+// The pulse counter increments by one for every 1/360 rotation (1 degree)
+volatile  long count = 0;
+
+// This tells the interrupt to run the method on any change
+#define intMode CHANGE
+
 //
-//// This tells the interrupt to run the method on any change
-//#define intMode CHANGE
+int leftPin = 8;
+int rightPin = 9;
 
 // ----------------------------------------------------------------
 // -------------------------- Functions ---------------------------
 // ----------------------------------------------------------------
 
-//void setup() {
-//  // init pin modes, active pullups
-//  pinMode(7, INPUT_PULLUP);
-//  pinMode(8, INPUT_PULLUP);
-//
-//  // init serial
-//  // We use 250000 for a high speed data transfer
-////  Serial.begin(250000);
-//  Serial.begin(9600);
-//
-//
-//  // init interrupts.
-//  // We run ecnoderA whenever there is a change from reading in from pin 7
-//  attachInterrupt(7, encoderA, intMode);
-//  attachInterrupt(8, encoderB, intMode) ;
-//}
-//
-//void loop() {
-//  // put your main code here, to run repeatedly:
-//}
+void setup() {
+  // init pin modes, active pullups
+  pinMode(leftPin, INPUT_PULLUP);
+  pinMode(rightPin, INPUT_PULLUP);
+
+  // init serial
+  // We use 250000 for a high speed data transfer
+//  Serial.begin(250000);
+  Serial.begin(9600);
+
+
+  // init interrupts.
+  // We run ecnoderA whenever there is a change from reading in from pin 7
+  attachInterrupt(leftPin, encoderA, intMode);
+  attachInterrupt(rightPin, encoderB, intMode) ;
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+}
 
 // ----------------------------------------------------------------
 // ----------------- Interrupt Service Routines -------------------
 // ----------------------------------------------------------------
 
-//// We want to keep the difference in the count
-//// at 0 when moving in a straight line.
-//
-//
-//// EncoderA for wheel 1. If we get a read from pin 7 or 8 but not both, 
-//// we decrease the count, otherwise we increase the count
-//void encoderA () {
-//  // decode quadrature
-//  (digitalRead(7) ^ digitalRead(8)) ? count-- : count++;
-//
-//  // debug to serial
-//  Serial.println(count);
-//}
-//
-//// EncoderB for wheel 1. If we get a read from pin 7 or 8 but not both, 
-//// we increase the count, otherwise decrease.
-//rvoid encoderB () {
-//  (digitalRead(7) ^ digitalRead(8)) ? count++ : count--;
-//  Serial.println(count);
-//}
-//
-//// serial event will inturrupt whenever serial data is available
-//
-//// i.e. if the pi gives an instruction to the robot (ie turn left) we 
-//// reset the counter on the arduino
-//void serialEvent() {
-//  if (Serial.read() == 'r') {
-//    // reset count when receiving 'r'
-//    count = 0;
-//    Serial.println(count);
-//  }
-//}
+// We want to keep the difference in the count
+// at 0 when moving in a straight line.
+
+
+// EncoderA for wheel 1. If we get a read from pin 7 or 8 but not both, 
+// we decrease the count, otherwise we increase the count
+void encoderA () {
+  // decode quadrature
+  (digitalRead(leftPin) ^ digitalRead(rightPin)) ? count-- : count++;
+
+  // debug to serial
+  Serial.println(count);
+}
+
+// EncoderB for wheel 1. If we get a read from pin 7 or 8 but not both, 
+// we increase the count, otherwise decrease.
+void encoderB () {
+  (digitalRead(leftPin) ^ digitalRead(rightPin)) ? count++ : count--;
+  Serial.println(count);
+}
+
+// serial event will inturrupt whenever serial data is available
+
+// i.e. if the pi gives an instruction to the robot (ie turn left) we 
+// reset the counter on the arduino
+void serialEvent() {
+  if (Serial.read() == 'r') {
+    // reset count when receiving 'r'
+    count = 0;
+    Serial.println(count);
+  }
+}
+
 
 

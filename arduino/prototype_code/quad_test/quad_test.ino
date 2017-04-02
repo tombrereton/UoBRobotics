@@ -132,7 +132,6 @@ void setup() {
 //  Serial.begin(250000);
   Serial.begin(9600);
 
-  AFMS.begin();  // create with the default frequency 1.6KHz
   //AFMS.begin(1000);  // OR with a different frequency, say 1KHz
 
   // We attach the encoders for the master wheel (left)
@@ -142,6 +141,8 @@ void setup() {
   // We attach the encoders for the slave wheel (right)
   attachInterrupt(10, slaveEncoderA, intMode);
   attachInterrupt(11, slaveEncoderB, intMode);
+
+  AFMS.begin();  // create with the default frequency 1.6KHz
 }
 
 // ----------------------------------------------------------------
@@ -184,6 +185,7 @@ void masterEncoderB () {
 void slaveEncoderA () {
   // decode quadrature
   (digitalRead(10) ^ digitalRead(11)) ? slaveCount-- : slaveCount++;
+  Serial.println(slaveCount);
 }
   
 /** 
@@ -194,6 +196,7 @@ void slaveEncoderA () {
 void slaveEncoderB () {
   // decode quadrature
   (digitalRead(10) ^ digitalRead(11)) ? slaveCount++ : slaveCount--;
+  Serial.println(slaveCount);
 }
 
 // ----------------------------------------------------------------
@@ -240,282 +243,12 @@ void setSlaveMotorSpeed(int speed){
 //  slaveMotor->run(RELEASE);
 }
 
-/**
- * This function determines the total number of ticks needed
- * to travel the milimetres specified to travel. It uses the formula:
- * 
- * Encoder ticks = (360 / circumference) * Distance to travel
- * or
- * Encoder ticks = TICKS_PER_CM * Distance to travel
- */
-int straightTickGoalCalculator(int mmToTravel){
-  int tickGoal = (TICKS_PER_CM * mmToTravel) / 10;
-  return tickGoal;
-}
-
-/**
- * This function determines the total number of ticks needed
- * to turn the degrees specified. It uses the formula:
- * 
- * Encoder ticks = TICKS_PER_10_DEGREES * degrees
- */
-int turnTickGoalCalculator(int degrees){
-  int tickGoal = (TICKS_PER_10_DEGREES * degrees) / 10;
-  return tickGoal;
-}
-
-/**
- * This function turns the robot 200 encoder ticks and is used to
- * calibrate its turning ability.
- * 
- * (1) The first thing we need to do is place the robot 
- * on a markable surface (e.g. whiteboard, a large sheet of paper, etc.) 
- * and mark a line perpendicular to the robot, straight through 
- * its center.
- * (2) Now, run the program.
- * (3) Next, mark another perpendicular line in the same manner as you 
- * did before, only relative to the robot's new position. 
- * (4) Finally, use a protractor to measure the angle formed between 
- * these two lines, and that will determine the angle through 
- * which the robot turned. 
- * (5) Enter this angle as the value for the variable, DEGREES_ROTATED above.
- */
-void calibration(){
-  masterCount = 0;
-  slaveCount = 0;
- 
-  // Perform a point turn to the left. We will use lower power 
-  // values for more accuracy.
-  setMasterMotorSpeed(100);
-  setSlaveMotorSpeed(-100);
-
-    // Since the wheels may go at slightly different speeds 
-    // due to manufacturing tolerances, etc., we need to test 
-    // both encoders and control both motors separately. This 
-    // may result in one motor going for longer than another but 
-    // it will ultimately result in a much more accurate turn.
-
-    while(slaveCount < 200 || masterCount > -200){
-
-      Serial.prinln(masterCount);
-      
-      if(slaveCount > 200){
-        setSlaveMotorSpeed(0);
-      }
-      
-      if(masterCount < -200){
-        setMasterMotorSpeed(0);
-      }
-    }
-
-  setMasterMotorSpeed(0);
-  setSlaveMotorSpeed(0);
-}
-
-/**
- * This fuctions rotates the robot left as specified by the
- * number of degrees. It rotates the wheels as per the power specified.
- */
-void turnLeftDeg(int degrees, int power){
-
-  // reset encoder counts
-  masterCount = 0;
-  slaveCount = 0;
-
-  // determine the tick goal
-  int tickGoal = turnTickGoalCalculator(degrees);
-
-  // Start the motors in a left point turn
-  setMasterMotorSpeed(-1 * power);
-  setSlaveMotorSpeed(power);
-
-  // Since the wheels may go at slightly different speeds due to 
-  // manufacturing tolerances, etc., we need to test both encoders 
-  // and control both motors separately. This may result in one motor
-  // going for longer than another but it will ultimately result 
-  // in a much more accurate turn.
-  while(slaveCount < tickGoal || masterCount > -1 * tickGoal){
-    
-    if(slaveCount > tickGoal){
-      setSlaveMotorSpeed(0);
-    }
-
-    if(masterCount < -1 * tickGoal){
-      setMasterMotorSpeed(0);
-    }
-  }
-
-  // make sure both motors stop after the loop
-  setSlaveMotorSpeed(0);
-  setMasterMotorSpeed(0);
-}
-
-/**
- * This fuctions rotates the robot right as specified by the
- * number of degrees. It rotates the wheels as per the power specified.
- */
-void turnRightDeg(int degrees, int power){
-
-  // reset encoder counts
-  masterCount = 0;
-  slaveCount = 0;
-
-  // determine the tick goal
-  int tickGoal = turnTickGoalCalculator(degrees);
-
-  // Start the motors in a right point turn
-  setMasterMotorSpeed(power);
-  setSlaveMotorSpeed(-1 * power);
-
-  // Since the wheels may go at slightly different speeds due to 
-  // manufacturing tolerances, etc., we need to test both encoders 
-  // and control both motors separately. This may result in one motor
-  // going for longer than another but it will ultimately result 
-  // in a much more accurate turn.
-  while(masterCount < tickGoal || slaveCount > -1 * tickGoal){
-    
-    if(masterCount > tickGoal){
-      setMasterMotorSpeed(0);
-    }
-
-    if(slaveCount < -1 * tickGoal){
-      setSlaveMotorSpeed(0);
-    }
-  }
-
-  // make sure both motors stop after the loop
-  setSlaveMotorSpeed(0);
-  setMasterMotorSpeed(0);
-}
-
-/**
- * This function moves the robot X milimetres in a straightline.
- * Where X is the parameter, mmToTravel. masterPower is the
- * starting power for the left motor. The slavePower (right)
- * is given an initial power relative to this. This difference may
- * need to be tweaked.
- * 
- * For example, if mmToTravel = 100, and masterPower = 30
- * We would travel 100 mm (10 cm) with the master motor
- * set to a power of 30.
- */
-void driveStraightDistance(int mmToTravel, int masterPower){
-  
-  int tickGoal = straightTickGoalCalculator(mmToTravel);
-
-  // DEBUG TICKGOAL
-  Serial.print("The mmToTravel is: ");
-  Serial.print(mmToTravel);
-  Serial.print(", The tick goal is: ");
-  Serial.println(tickGoal);
-
-  // This will count up the total encoder ticks despite the 
-  // fact that the encoders are constantly reset.
-  int totalTicks = 0;
-
-  // Initialise slavePower as masterPower - 5 so we don't get 
-  // huge error for the first few iterations. The -5 value is 
-  // based off a rough guess of how much the motors are different,
-  // which prevents the robot from veering off course at the start 
-  // of the function.
-  int slavePower = masterPower; 
-
-  volatile int localErrorVar = 0;
-
-  masterCount = 0;
-  slaveCount = 0;
-  
-  while(absolute(totalTicks) < tickGoal){
-
-    // Set the 2 motors to the masterPower and slavePower
-    setSlaveMotorSpeed(masterPower);
-    setMasterMotorSpeed(slavePower);
-
-    // We calculate the error between the wheel.
-    // A negative error means the slave wheel should slow down.
-    // A positive error means the slave wheel should speed up.
-    localErrorVar = masterCount - slaveCount;
-
-    // DEBUG LOCAL ERROR VAR
-    Serial.print("Local Error: ");
-    Serial.print(localErrorVar);
-
-    // Dividing by kp means that the error is scaled accordingly 
-    // so that the motor value does not change too much or too 
-    // little. You should 'tune' kp to get the best value. 
-    slavePower = slavePower + localErrorVar / kp;
-
-    // DEBUG SLAVE POWER
-    Serial.print(", Slave power: ");
-    Serial.println(slavePower);
-
-    totalTicks = totalTicks + masterCount;
-
-    // DEBUG TOTALTICKS
-    Serial.print("The totalTicks so far: ");
-    Serial.println(totalTicks);
-
-    // Reset the encoders every loop so we have a fresh value 
-    // to use to calculate the error.
-    masterCount = 0;
-    slaveCount = 0;
-
-    // Makes the loop repeat ten times a second. If it repeats 
-    // too much we lose accuracy due to the fact that we don't have
-    // access to floating point math, however if it repeats to 
-    // little the proportional algorithm will not be as effective.
-    // Keep in mind that if this value is changed, kp must change accordingly.
-    delay(200);
-  }
-
-  // Stop the wheels moving once we have reached the destination
-  setSlaveMotorSpeed(0);
-  setMasterMotorSpeed(0);
-}
-
-
 // ----------------------------------------------------------------
 // ----------------------- Main Function --------------------------
 // ----------------------------------------------------------------
 
 void loop(){
-  delay(1000);
-  calibration();
-  delay(1000);
-  driveStraightDistance(500, 100);
-  delay(1000);
-  driveStraightDistance(500, -100);
+  setMasterMotorSpeed(100);
+  setSlaveMotorSpeed(100);
+  
 }
-
-
-
-// ----------------------------------------------------------------
-// ------------------------- Protocol -----------------------------
-// ----------------------------------------------------------------
-
-
-/**
- * - Request Packet contains type, and 2 parameters for method
- * - type1, distance to travel in mm, power of master to go forward
- * - type2, degrees to rotate left, power to turn left
- * - type3, degrees to rotate right, power to turn right
- * - type4, distance to travel in mm, power of master to go backward
- * - type5, 0, 0, tells robot to stop
- * - Example: "one, 100, 30"
- * 
- * - Response packet contains type, success, error msg
- * - Example: "one, FAIL, unknown"
- */
-
-void decodeProtocol(char packet[]){
-  // need to define length
-
-char test[] ="one, 100000, 30";
-char * command;
-command = strtok (test,",");
-}
-
-
- 
-
-
