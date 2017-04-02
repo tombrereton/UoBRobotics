@@ -157,7 +157,7 @@ void masterEncoderA () {
   // decode quadrature
   (digitalRead(8) ^ digitalRead(9)) ? masterCount-- : masterCount++;
   // debug to serial
-  Serial.println(masterCount);
+//  Serial.println(masterCount);
 }
   
 /** 
@@ -169,7 +169,7 @@ void masterEncoderB () {
   // decode quadrature
   (digitalRead(8) ^ digitalRead(9)) ? masterCount++ : masterCount--;
   // debug to serial
-  Serial.println(masterCount);
+//  Serial.println(masterCount);
 }
 
 // ----------------------------------------------------------------
@@ -460,7 +460,7 @@ void driveStraightDistance(int mmToTravel, int masterPower){
     // access to floating point math, however if it repeats to 
     // little the proportional algorithm will not be as effective.
     // Keep in mind that if this value is changed, kp must change accordingly.
-    delay(200);
+    delay(100);
   }
 
   // Stop the wheels moving once we have reached the destination
@@ -474,10 +474,13 @@ void driveStraightDistance(int mmToTravel, int masterPower){
 // ----------------------------------------------------------------
 
 void loop(){
-  driveStraightDistance(500, 100);
+  driveStraightDistance(1000, 150);
   delay(1000);
-  driveStraightDistance(500, -100);
+  driveStraightDistance(1000, -150);
   delay(1000);
+  turnRightDeg(90, 100);
+  delay(1000);
+  
 }
 
 
